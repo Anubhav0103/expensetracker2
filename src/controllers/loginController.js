@@ -1,5 +1,7 @@
 const db = require('../db/connection'); 
 
+const bcrypt = require('bcrypt');
+
 const handleLogin = (req, res) => {
     const { email, password } = req.body;
 
@@ -8,27 +10,30 @@ const handleLogin = (req, res) => {
     }
 
     const query = 'SELECT * FROM users WHERE email = ?';
-    db.query(query, [email], (err, results) => {
+    db.query(query, [email], async (err, results) => {
         if (err) {
             console.error('Database query error:', err);
             return res.status(500).send({ message: 'Internal server error.' });
         }
 
         if (results.length === 0) {
-            // User not found
             return res.status(404).send({ message: 'User not found.' });
         }
 
         const user = results[0];
 
-        // Compare the provided password with the one stored in the database
-        if (user.password !== password) {
-            // Password mismatch
-            return res.status(401).send({ message: 'User not authorized.' });
-        }
+        try {
+            const isMatch = await bcrypt.compare(password, user.password);
 
-        // Successful login
-        res.status(200).send({ message: 'User login successful.' });
+            if (!isMatch) {
+                return res.status(401).send({ message: 'User not authorized.' });
+            }
+
+            res.status(200).send({ message: 'User login successful.' });
+        } catch (err) {
+            console.error('Error comparing passwords:', err);
+            res.status(500).send({ message: 'Error processing login.' });
+        }
     });
 };
 

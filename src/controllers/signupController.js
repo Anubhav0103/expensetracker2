@@ -1,31 +1,41 @@
 const db = require('../db/connection');
 
-exports.handleSignup = (req, res) => {
+const bcrypt = require('bcrypt');
+
+const handleSignup = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-        return res.status(400).json({ message: 'All fields are required' });
+        return res.status(400).send({ message: 'All fields are required.' });
     }
 
-    const checkUserQuery = 'SELECT * FROM users WHERE email = ?';
-    db.query(checkUserQuery, [email], (err, results) => {
+    const checkQuery = 'SELECT * FROM users WHERE email = ?';
+    db.query(checkQuery, [email], async (err, results) => {
         if (err) {
             console.error('Database query error:', err);
-            return res.status(500).json({ message: 'Internal server error' });
+            return res.status(500).send({ message: 'Internal server error.' });
         }
 
         if (results.length > 0) {
-            return res.status(409).json({ message: 'User already exists' });
+            return res.status(409).send({ message: 'User already exists.' });
         }
 
-        const insertUserQuery = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
-        db.query(insertUserQuery, [name, email, password], (err) => {
-            if (err) {
-                console.error('Error inserting user:', err);
-                return res.status(500).json({ message: 'Internal server error' });
-            }
+        try {
+            const hashedPassword = await bcrypt.hash(password, 10);
 
-            res.status(201).json({ message: 'Signup successful' });
-        });
+            const insertQuery = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
+            db.query(insertQuery, [name, email, hashedPassword], (err, result) => {
+                if (err) {
+                    console.error('Error inserting user:', err);
+                    return res.status(500).send({ message: 'Error signing up user.' });
+                }
+                res.status(201).send({ message: 'User created successfully.' });
+            });
+        } catch (err) {
+            console.error('Error hashing password:', err);
+            res.status(500).send({ message: 'Error processing signup.' });
+        }
     });
 };
+
+module.exports = { handleSignup };
