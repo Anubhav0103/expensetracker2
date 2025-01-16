@@ -18,7 +18,7 @@ const expenseRoutes = require('./routes/expenseRoutes');
 app.use('/signup', signupRoutes);
 app.use('/login', loginRoutes);
 app.use('/expenses', expenseRoutes);
-
+app.use("/webhook", expenseRoutes);
 // Fallback for missing root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

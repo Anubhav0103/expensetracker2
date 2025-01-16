@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="premiumSection">
+    <button id="premiumButton">Become a Premium User</button>
+    <p id="premiumMessage"></p>
+  </div>
   <div class="expense-container">
     <h1>Expense Tracker</h1>
     <form id="expenseForm">
@@ -94,6 +98,15 @@
     });
 
     fetchExpenses();
+    if (localStorage.getItem("isPremium") === "true") {
+            document.getElementById("premiumMessage").innerText = "You are a premium user now";
+            document.getElementById("premiumButton").style.display = "none"; // Hide button for premium users
+        }
+
+        // Redirect to Razorpay payment link
+        document.getElementById("premiumButton").addEventListener("click", () => {
+            window.location.href = "https://razorpay.me/@anubhavpandey8039"; // Your payment link
+        });
   </script>
 </body>
 </html>
