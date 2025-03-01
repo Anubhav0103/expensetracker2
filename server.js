@@ -1,31 +1,28 @@
 const express = require('express');
-const cors = require('cors');
-const path = require('path'); // Import path module for file paths
-
-const app = express();
-app.use(cors());
-app.use(express.json()); // Ensure the server is configured to handle JSON requests
-
-// Serve static files from the public folder
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Import the routes
-const signupRoutes = require('./routes/signupRoutes');
-const loginRoutes = require('./routes/loginRoutes');
+const session = require('express-session');
+const userRoutes = require('./routes/userRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 
-// Mount the routes properly
-app.use('/signup', signupRoutes);
-app.use('/login', loginRoutes);
-app.use('/expenses', expenseRoutes);
-app.use("/webhook", expenseRoutes);
-// Fallback for missing root route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+const app = express();
 
-// Start the server
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ Use sessions for authentication
+app.use(session({
+    secret: "your_secret_key",
+    resave: false,
+    saveUninitialized: true
+}));
+
+// ✅ Routes
+app.use('/user', userRoutes);
+app.use('/expense', expenseRoutes);
+const purchaseRoutes = require("./routes/purchaseRoutes"); // ✅ Correct file name
+app.use("/purchase", purchaseRoutes);
+
+
+// ✅ Serve static files (Frontend)
+app.use(express.static('public'));
+
+app.listen(5000, () => console.log("Server is running at http://localhost:5000"));

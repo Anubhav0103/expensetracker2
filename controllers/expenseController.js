@@ -1,50 +1,40 @@
-const db = require('../db/connection');
+const pool = require('../config/db');
 
-// Fetch all expenses for the logged-in user
-exports.getExpenses = (req, res) => {
-  const userId = req.userId;
-  const query = 'SELECT * FROM expenses WHERE user_id = ? ORDER BY created_at DESC';
+exports.addExpense = async (req, res) => {
+    const { amount, description, category } = req.body;
+    const userId = req.session.userId;
 
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error('Error fetching expenses:', err);
-      return res.status(500).send('Error fetching expenses');
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
     }
-    res.status(200).json(results);
-  });
+
+    try {
+        await pool.query(
+            "INSERT INTO expenses (user_id, amount, description, category) VALUES (?, ?, ?, ?)",
+            [userId, amount, description, category]
+        );
+
+        return res.status(201).json({ message: "Expense added successfully" });
+
+    } catch (error) {
+        console.error("❌ Error adding expense:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 };
 
-// Add a new expense for the logged-in user
-exports.addExpense = (req, res) => {
-  const { amount, description, category } = req.body;
-  const userId = req.userId;
+exports.getExpenses = async (req, res) => {
+    const userId = req.session.userId;
 
-  if (!userId || !amount || !description || !category) {
-    return res.status(400).send('All fields are required');
-  }
-
-  const query = 'INSERT INTO expenses (user_id, amount, description, category) VALUES (?, ?, ?, ?)';
-  db.query(query, [userId, amount, description, category], (err, result) => {
-    if (err) {
-      console.error('Error adding expense:', err);
-      return res.status(500).send('Error adding expense');
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
     }
-    res.status(201).send({ message: 'Expense added successfully', id: result.insertId });
-  });
-};
 
-exports.deleteExpense = async (req, res) => {
-  const expenseId = req.params.id;
+    try {
+        const [expenses] = await pool.query("SELECT * FROM expenses WHERE user_id = ?", [userId]);
+        return res.status(200).json(expenses);
 
-  try {
-      const result = await db.query('DELETE FROM expenses WHERE id = $1 AND user_id = $2', [expenseId, req.userId]);
-      if (result.rowCount > 0) {
-          res.status(200).json({ message: 'Expense deleted successfully.' });
-      } else {
-          res.status(404).json({ message: 'Expense not found.' });
-      }
-  } catch (error) {
-      console.error('Error deleting expense:', error);
-      res.status(500).json({ message: 'An error occurred while deleting the expense.' });
-  }
+    } catch (error) {
+        console.error("❌ Error fetching expenses:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 };
