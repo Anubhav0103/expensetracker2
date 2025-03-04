@@ -1,128 +1,102 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    const expenseForm = document.getElementById("expenseForm");
-    const expenseList = document.getElementById("expenseList");
+    const buyMembershipBtn = document.getElementById("buyMembership");
+    const premiumText = document.getElementById("premiumText");
 
-    // ✅ Ensure user is logged in
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-        alert("Error: User ID not found. Please log in again.");
-        window.location.href = "signup.html"; // Redirect to login page
+    if (!buyMembershipBtn) {
+        console.error("❌ Buy Membership button not found!");
         return;
     }
 
-    // ✅ Fetch existing expenses on page load
-    try {
-        const response = await fetch("/expense/getAll", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }) // ✅ Send userId to fetch user's expenses
-        });
+    console.log("✅ Buy Membership button found!");
 
-        const expenses = await response.json();
-        expenses.forEach(exp => {
-            const li = document.createElement("li");
-            li.textContent = `${exp.amount} - ${exp.description} (${exp.category})`;
-            expenseList.appendChild(li);
-        });
-    } catch (error) {
-        console.error("❌ Error fetching expenses:", error);
+    const res = await fetch("/user/session");
+    const data = await res.json();
+    const userId = data.userId;
+
+    if (!userId) {
+        alert("Error: User ID not found. Please log in again.");
+        window.location.href = "signup.html";
+        return;
     }
 
-    // ✅ Handle Expense Form Submission
-    expenseForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
+    const userRes = await fetch("/user/details");
+    const userData = await userRes.json();
 
-        const amount = document.getElementById("amount").value;
-        const description = document.getElementById("description").value;
-        const category = document.getElementById("category").value;
+    if (userData.isPremium) {
+        buyMembershipBtn.style.display = "none";
+        premiumText.style.display = "block";
+    }
 
+    document.getElementById("buyMembership").addEventListener("click", async () => {
+        console.log("✅ Buy Membership button clicked!");
+    
         try {
-            const response = await fetch("/expense/add", {
+            const response = await fetch("/purchase/membership", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId, amount, description, category }) // ✅ Include userId
+                headers: { "Content-Type": "application/json" }
             });
-
-            if (response.ok) {
-                location.reload(); // ✅ Refresh page to show new expense
-            } else {
-                alert("❌ Error adding expense");
+    
+            console.log("✅ Fetch request sent to /purchase/membership");
+    
+            const data = await response.json();
+    
+            if (!data.orderId) {
+                console.error("❌ Failed to create order. Response:", data);
+                alert("Error: Unable to create order. Check console.");
+                return;
             }
-        } catch (error) {
-            console.error("❌ Error:", error);
-            alert("Something went wrong while adding the expense.");
-        }
-    });
-});
-
-// ✅ Handle "Buy Membership" Button Click
-document.getElementById("buyMembership").addEventListener("click", async () => {
-    const userId = localStorage.getItem("userId");
-
-    if (!userId) {
-        alert("Error: User ID not found. Please log in again.");
-        return;
-    }
-
-    try {
-        const response = await fetch("http://localhost:5000/purchase/membership", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }) // ✅ Sending userId in request body
-        });
-
-        const data = await response.json();
-        
-        if (data.orderId) {
+    
+            console.log("✅ Order created successfully!", data);
+    
             const options = {
-                key: "rzp_test_cNdwDn00jRSuoN", // ✅ Use fixed Razorpay Key ID
-                amount: 3000, // ₹30 in paise
+                key: "rzp_test_cNdwDn00jRSuoN",
+                amount: 3000,
                 currency: "INR",
                 name: "Expense Tracker Premium",
                 order_id: data.orderId,
                 handler: async function (response) {
-                    await verifyPayment(response, data.orderId); // ✅ Call verify function
+                    console.log("✅ Payment successful:", response);
+                    await verifyPayment(response, data.orderId);
                 },
                 prefill: {
                     email: localStorage.getItem("userEmail"),
                 }
             };
-
+    
             const razorpay = new Razorpay(options);
             razorpay.open();
-        } else {
-            alert("❌ Error: Unable to create order.");
+        } catch (error) {
+            console.error("❌ Error in buy membership:", error);
+            alert("Something went wrong while processing payment.");
         }
-    } catch (error) {
-        console.error("❌ Error:", error);
-        alert("Something went wrong while processing payment.");
+    });
+
+    async function verifyPayment(response, orderId) {
+        try {
+            console.log("✅ Verifying payment...", response);
+
+            const res = await fetch("/purchase/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature
+                })
+            });
+
+            const result = await res.json();
+            console.log("✅ Payment verification response:", result);
+
+            if (result.success) {
+                alert("🎉 Transaction Successful! You are now a premium member.");
+                window.location.reload();
+            } else {
+                alert("❌ Transaction Failed.");
+            }
+        } catch (error) {
+            console.error("❌ Error verifying payment:", error);
+            alert("Something went wrong while verifying payment.");
+        }
     }
 });
-
-// ✅ Verify Payment and Update User as Premium
-async function verifyPayment(response, orderId) {
-    try {
-        const res = await fetch("/purchase/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                userId: localStorage.getItem("userId")
-            })
-        });
-
-        const result = await res.json();
-
-        if (result.success) {
-            alert("🎉 Transaction Successful! You are now a premium user.");
-            window.location.reload(); // ✅ Refresh to show updated premium status
-        } else {
-            alert("❌ Transaction Failed.");
-        }
-    } catch (error) {
-        console.error("❌ Error verifying payment:", error);
-        alert("Something went wrong while verifying payment.");
-    }
-}

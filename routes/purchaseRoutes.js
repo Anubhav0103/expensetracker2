@@ -1,63 +1,75 @@
 const express = require("express");
 const Razorpay = require("razorpay");
-const db = require("../config/db"); // ✅ Corrected file name
- // Ensure you have a database connection
-const router = express.Router();
+const db = require("../config/db");
+const crypto = require("crypto");
 
+const router = express.Router();
 const razorpay = new Razorpay({
     key_id: "rzp_test_cNdwDn00jRSuoN",
     key_secret: "jip7vCslNxD2RZjCMTwSssSA"
 });
 
-// ✅ Create Order and Store in DB
+// ✅ Create Razorpay Order & Store in DB
 router.post("/membership", async (req, res) => {
+    console.log("✅ Received request at /purchase/membership");
+
+    const userId = req.session.userId;
+    if (!userId) {
+        console.error("❌ User ID not found!");
+        return res.status(400).json({ message: "User ID not found. Please log in again." });
+    }
+
+    console.log("✅ User ID:", userId);
+
+    const options = {
+        amount: 3000,
+        currency: "INR",
+        receipt: `receipt_${Date.now()}`
+    };
+
     try {
-        const { userId } = req.body; // ✅ Ensure userId is being received
-
-        if (!userId) {
-            return res.status(400).json({ message: "User ID is required" });
-        }
-
-        const options = {
-            amount: 3000, // ₹30 in paise
-            currency: "INR",
-            receipt: `receipt_${Date.now()}`
-        };
-
         const order = await razorpay.orders.create(options);
+        console.log("✅ Razorpay order created:", order);
 
-        // ✅ Correcting the INSERT query (Your table has userId, orderId, status)
         await db.query("INSERT INTO orders (orderId, userId, status) VALUES (?, ?, ?)", 
             [order.id, userId, "PENDING"]);
 
+        console.log("✅ Order stored in database!");
         res.json({ orderId: order.id, key_id: "rzp_test_cNdwDn00jRSuoN" });
+
     } catch (error) {
-        console.error("Error creating order:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error("❌ Error creating order:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.toString() });
     }
 });
 
-
-
-const crypto = require("crypto");
-
-// ✅ Verify Payment and Update Status
+// ✅ Verify Payment & Update Status
 router.post("/verify", async (req, res) => {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = req.body;
+    console.log("✅ Received request at /purchase/verify");
 
-    const secret = "jip7vCslNxD2RZjCMTwSssSA"; // Razorpay Secret Key
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const userId = req.session.userId;
+
+    if (!userId) {
+        return res.status(400).json({ message: "User ID not found. Please log in again." });
+    }
+
+    const secret = "jip7vCslNxD2RZjCMTwSssSA";
     const generated_signature = crypto.createHmac("sha256", secret)
         .update(`${razorpay_order_id}|${razorpay_payment_id}`)
         .digest("hex");
 
     if (generated_signature === razorpay_signature) {
-        // ✅ Use Promise.all() for faster DB updates
-        await Promise.all([
-            db.query("UPDATE orders SET status = 'SUCCESSFUL' WHERE orderId = ?", [razorpay_order_id]),
-            db.query("UPDATE users SET isPremium = true WHERE id = ?", [userId])
-        ]);
-
-        return res.json({ success: true, message: "Transaction Successful!" });
+        try {
+            await Promise.all([
+                db.query("UPDATE orders SET status = 'SUCCESSFUL' WHERE orderId = ?", [razorpay_order_id]),
+                db.query("UPDATE users SET isPremium = 1 WHERE id = ?", [userId]) // ✅ Fix: isPremium should be 1/0 (not true/false)
+            ]);
+            return res.json({ success: true, message: "Transaction Successful!" });
+        } catch (error) {
+            console.error("❌ Error updating database:", error);
+            return res.status(500).json({ success: false, message: "Database update failed." });
+        }
     } else {
         await db.query("UPDATE orders SET status = 'FAILED' WHERE orderId = ?", [razorpay_order_id]);
         return res.status(400).json({ success: false, message: "Transaction Failed" });

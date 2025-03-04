@@ -22,6 +22,7 @@ exports.addExpense = async (req, res) => {
     }
 };
 
+// ✅ Fix: Add console.log for debugging
 exports.getExpenses = async (req, res) => {
     const userId = req.session.userId;
 
@@ -30,7 +31,9 @@ exports.getExpenses = async (req, res) => {
     }
 
     try {
-        const [expenses] = await pool.query("SELECT * FROM expenses WHERE user_id = ?", [userId]);
+        const [expenses] = await pool.query("SELECT amount, description, category FROM expenses WHERE user_id = ?", [userId]);
+
+        console.log("Fetched expenses:", expenses); // ✅ Debugging log
         return res.status(200).json(expenses);
 
     } catch (error) {

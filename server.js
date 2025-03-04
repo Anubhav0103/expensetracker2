@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const userRoutes = require('./routes/userRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
+const purchaseRoutes = require("./routes/purchaseRoutes");
 
 const app = express();
 
@@ -18,9 +19,7 @@ app.use(session({
 // ✅ Routes
 app.use('/user', userRoutes);
 app.use('/expense', expenseRoutes);
-const purchaseRoutes = require("./routes/purchaseRoutes"); // ✅ Correct file name
-app.use("/purchase", purchaseRoutes);
-
+app.use('/purchase', purchaseRoutes); // ✅ Move this above static files
 
 // ✅ Serve static files (Frontend)
 app.use(express.static('public'));

@@ -10,7 +10,8 @@ const isAuthenticated = (req, res, next) => {
     next();
 };
 
-router.post('/add', isAuthenticated, expenseController.addExpense);
+// ✅ Fix: Change `/getAll` to a GET request
 router.get('/getAll', isAuthenticated, expenseController.getExpenses);
+router.post('/add', isAuthenticated, expenseController.addExpense);
 
 module.exports = router;
