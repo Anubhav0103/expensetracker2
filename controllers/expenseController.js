@@ -1,43 +1,38 @@
-const pool = require('../config/db');
+const db = require('../config/db');
 
-exports.addExpense = async (req, res) => {
-    const { amount, description, category } = req.body;
-    const userId = req.session.userId;
-
-    if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
-
+exports.getLeaderboard = async (req, res) => {
     try {
-        await pool.query(
-            "INSERT INTO expenses (user_id, amount, description, category) VALUES (?, ?, ?, ?)",
-            [userId, amount, description, category]
-        );
-
-        return res.status(201).json({ message: "Expense added successfully" });
-
+        const [results] = await db.query(`
+            SELECT users.name, SUM(expenses.amount) AS total_expense
+            FROM users
+            JOIN expenses ON users.id = expenses.userId
+            GROUP BY users.id
+            ORDER BY total_expense DESC;
+        `);
+        res.json(results);
     } catch (error) {
-        console.error("❌ Error adding expense:", error);
-        return res.status(500).json({ message: "Internal Server Error" });
+        console.error("❌ Error fetching leaderboard:", error);
+        res.status(500).json({ message: "Server Error", error });
     }
 };
 
-// ✅ Fix: Add console.log for debugging
-exports.getExpenses = async (req, res) => {
-    const userId = req.session.userId;
-
-    if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
-
+exports.addExpense = async (req, res) => {
+    const { userId, amount, description, category } = req.body;
     try {
-        const [expenses] = await pool.query("SELECT amount, description, category FROM expenses WHERE user_id = ?", [userId]);
+        await db.query("INSERT INTO expenses (userId, amount, description, category) VALUES (?, ?, ?, ?)", [userId, amount, description, category]);
+        res.status(201).json({ message: "Expense added successfully" });
+    } catch (error) {
+        console.error("❌ Error adding expense:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
 
-        console.log("Fetched expenses:", expenses); // ✅ Debugging log
-        return res.status(200).json(expenses);
-
+exports.getExpenses = async (req, res) => {
+    try {
+        const [results] = await db.query("SELECT amount, description, category FROM expenses");
+        res.json(results);
     } catch (error) {
         console.error("❌ Error fetching expenses:", error);
-        return res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ message: "Server Error" });
     }
 };

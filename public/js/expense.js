@@ -1,102 +1,74 @@
-document.addEventListener("DOMContentLoaded", async () => {
-    const buyMembershipBtn = document.getElementById("buyMembership");
-    const premiumText = document.getElementById("premiumText");
+document.addEventListener('DOMContentLoaded', async function () {
+    console.log("✅ Expense page loaded!");
 
-    if (!buyMembershipBtn) {
-        console.error("❌ Buy Membership button not found!");
-        return;
+    // Elements
+    const buyMembershipBtn = document.getElementById('buyMembershipBtn');
+    const premiumText = document.getElementById('premiumText');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    const leaderboardContainer = document.getElementById('leaderboardContainer');
+    const leaderboardTable = document.getElementById('leaderboard');
+    const expenseList = document.getElementById('expenseList');
+
+    // Check user details
+    try {
+        const userDetails = await fetch('/user/details').then(res => res.json());
+
+        if (userDetails.isPremium) {
+            buyMembershipBtn.style.display = 'none'; // Hide Buy Membership Button
+            premiumText.style.display = 'block'; // Show "You are a Premium Member"
+            leaderboardBtn.style.display = 'inline-block'; // Show Leaderboard Button
+        } else {
+            buyMembershipBtn.style.display = 'inline-block';
+        }
+    } catch (error) {
+        console.error("❌ Error fetching user details:", error);
     }
 
-    console.log("✅ Buy Membership button found!");
-
-    const res = await fetch("/user/session");
-    const data = await res.json();
-    const userId = data.userId;
-
-    if (!userId) {
-        alert("Error: User ID not found. Please log in again.");
-        window.location.href = "signup.html";
-        return;
-    }
-
-    const userRes = await fetch("/user/details");
-    const userData = await userRes.json();
-
-    if (userData.isPremium) {
-        buyMembershipBtn.style.display = "none";
-        premiumText.style.display = "block";
-    }
-
-    document.getElementById("buyMembership").addEventListener("click", async () => {
-        console.log("✅ Buy Membership button clicked!");
-    
-        try {
-            const response = await fetch("/purchase/membership", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" }
-            });
-    
-            console.log("✅ Fetch request sent to /purchase/membership");
-    
-            const data = await response.json();
-    
-            if (!data.orderId) {
-                console.error("❌ Failed to create order. Response:", data);
-                alert("Error: Unable to create order. Check console.");
-                return;
-            }
-    
-            console.log("✅ Order created successfully!", data);
-    
-            const options = {
-                key: "rzp_test_cNdwDn00jRSuoN",
-                amount: 3000,
-                currency: "INR",
-                name: "Expense Tracker Premium",
-                order_id: data.orderId,
-                handler: async function (response) {
-                    console.log("✅ Payment successful:", response);
-                    await verifyPayment(response, data.orderId);
-                },
-                prefill: {
-                    email: localStorage.getItem("userEmail"),
-                }
-            };
-    
-            const razorpay = new Razorpay(options);
-            razorpay.open();
-        } catch (error) {
-            console.error("❌ Error in buy membership:", error);
-            alert("Something went wrong while processing payment.");
+    // Toggle Leaderboard
+    leaderboardBtn.addEventListener('click', async function () {
+        if (leaderboardContainer.style.display === 'none') {
+            leaderboardContainer.style.display = 'block';
+            leaderboardBtn.textContent = '📉 Hide Leaderboard';
+            loadLeaderboard();
+        } else {
+            leaderboardContainer.style.display = 'none';
+            leaderboardBtn.textContent = '📊 Show Leaderboard';
         }
     });
 
-    async function verifyPayment(response, orderId) {
+    async function loadLeaderboard() {
         try {
-            console.log("✅ Verifying payment...", response);
+            const res = await fetch('/expense/leaderboard');
+            const data = await res.json();
 
-            const res = await fetch("/purchase/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature
-                })
+            leaderboardTable.innerHTML = ""; // Clear previous data
+            data.forEach((user, index) => {
+                const row = `<tr>
+                    <td>${index + 1}</td>
+                    <td>${user.name}</td>
+                    <td>₹${user.total_expense}</td>
+                </tr>`;
+                leaderboardTable.innerHTML += row;
             });
-
-            const result = await res.json();
-            console.log("✅ Payment verification response:", result);
-
-            if (result.success) {
-                alert("🎉 Transaction Successful! You are now a premium member.");
-                window.location.reload();
-            } else {
-                alert("❌ Transaction Failed.");
-            }
         } catch (error) {
-            console.error("❌ Error verifying payment:", error);
-            alert("Something went wrong while verifying payment.");
+            console.error("❌ Error loading leaderboard:", error);
         }
     }
+
+    // Fetch and display expenses
+    async function loadExpenses() {
+        try {
+            const response = await fetch('/expense/getAll');
+            const expenses = await response.json();
+            expenseList.innerHTML = "";
+            expenses.forEach(exp => {
+                const li = document.createElement('li');
+                li.textContent = `${exp.description} - ₹${exp.amount} (${exp.category})`;
+                expenseList.appendChild(li);
+            });
+        } catch (error) {
+            console.error("❌ Error fetching expenses:", error);
+        }
+    }
+    loadExpenses();
 });

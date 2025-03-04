@@ -4,20 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker</title>
-    <script defer src="./js/expense.js"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script defer src="expense.js"></script>
 </head>
 <body>
-
-    <button id="buyMembership">Buy Premium Membership</button>
-<h2 id="premiumText" style="display: none; color: green;">You are a premium member now</h2>
-
     <h1>Expense Tracker</h1>
-    
+
+    <div id="membershipContainer">
+        <button id="buyMembershipBtn" style="display: none;">💎 Buy Premium Membership</button>
+        <p id="premiumText" style="display: none;">✨ You are a Premium Member</p>
+    </div>
+
+    <button id="leaderboardBtn" style="display: none;">📊 Show Leaderboard</button>
+
+    <div id="leaderboardContainer" style="display: none;">
+        <h2>Leaderboard</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Total Expenses</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard"></tbody>
+        </table>
+    </div>
+
+    <h2>Add Expense</h2>
     <form id="expenseForm">
         <input type="number" id="amount" placeholder="Amount" required>
         <input type="text" id="description" placeholder="Description" required>
-        <select id="category" required>
+        <select id="category">
             <option value="food">Food</option>
             <option value="fuel">Fuel</option>
             <option value="travel">Travel</option>
@@ -26,8 +43,7 @@
         <button type="submit">Add Expense</button>
     </form>
 
-    <h2>All Expenses</h2>
+    <h2>Expense List</h2>
     <ul id="expenseList"></ul>
-
 </body>
 </html>
