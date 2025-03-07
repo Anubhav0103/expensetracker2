@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker</title>
-    <script defer src="expense.js"></script>
+    <script src="./js/expense.js" defer></script>  <!-- ✅ Ensure script loads after page -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
     <h1>Expense Tracker</h1>
@@ -14,7 +15,8 @@
         <p id="premiumText" style="display: none;">✨ You are a Premium Member</p>
     </div>
 
-    <button id="leaderboardBtn" style="display: none;">📊 Show Leaderboard</button>
+    <button id="leaderboardBtn" onclick="toggleLeaderboard()" style="display:none;">Show Leaderboard</button>
+<p id="premiumText" style="display: none;">✨ You are a Premium Member</p>
 
     <div id="leaderboardContainer" style="display: none;">
         <h2>Leaderboard</h2>
@@ -44,6 +46,6 @@
     </form>
 
     <h2>Expense List</h2>
-    <ul id="expenseList"></ul>
+    <ul id="expense-list"></ul> <!-- ✅ Ensure correct ID -->
 </body>
 </html>
