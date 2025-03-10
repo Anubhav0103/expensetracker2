@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// ✅ Fetch all expenses of the logged-in user
+// ✅ Fetch all expenses of the logged-in user with pagination
 exports.getExpenses = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -8,12 +8,31 @@ exports.getExpenses = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const [expenses] = await db.query(
-            'SELECT id, amount, description, category FROM expenses WHERE user_id = ?',
+        const page = parseInt(req.query.page) || 1; // Current page number
+        const limit = parseInt(req.query.limit) || 10; // ✅ Number of expenses per page
+        const offset = (page - 1) * limit; // Calculate the offset
+
+        // Get total number of expenses
+        const [totalExpenses] = await db.query(
+            'SELECT COUNT(*) AS total FROM expenses WHERE user_id = ?',
             [userId]
         );
+        const total = totalExpenses[0].total;
+        const totalPages = Math.ceil(total / limit); // Calculate total pages
 
-        res.status(200).json(expenses);
+        // Fetch expenses with pagination
+        const [expenses] = await db.query(
+            'SELECT id, amount, description, category FROM expenses WHERE user_id = ? LIMIT ? OFFSET ?',
+            [userId, limit, offset]
+        );
+
+        res.status(200).json({
+            expenses,
+            page,
+            totalPages,
+            total,
+            limit // ✅ Include limit in the response
+        });
     } catch (error) {
         console.error("❌ Error fetching expenses:", error);
         res.status(500).json({ message: "Server Error", error: error.message });

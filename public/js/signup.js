@@ -64,4 +64,38 @@ document.addEventListener('DOMContentLoaded', function () {
             alert("❌ Server error. Please try again later.");
         }
     });
+
+    // ✅ Add event listener to forgot password link
+    document.getElementById('forgotPasswordLink').addEventListener('click', async function (event) {
+        event.preventDefault();
+        const email = document.getElementById('loginEmail').value; // Get the email from the login form
+        console.log(email);
+        if (!email) {
+            alert('Please enter your email address in the login form.');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:5000/user/forgotpassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message); // Show success message
+            } else {
+                alert(data.message); // Show error message
+            }
+        } catch (error) {
+            console.error('❌ Error in forgot password:', error);
+            alert('❌ Server error. Please try again later.');
+        }
+    });
 });
