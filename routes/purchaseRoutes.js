@@ -2,11 +2,12 @@ const express = require("express");
 const Razorpay = require("razorpay");
 const db = require("../config/db");
 const crypto = require("crypto");
+require('dotenv').config();  // ✅ Load environment variables
 
 const router = express.Router();
 const razorpay = new Razorpay({
-    key_id: "rzp_test_cNdwDn00jRSuoN",
-    key_secret: "jip7vCslNxD2RZjCMTwSssSA"
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
 // ✅ Create Razorpay Order & Store in DB
@@ -35,7 +36,7 @@ router.post("/membership", async (req, res) => {
             [order.id, userId, "PENDING"]);
 
         console.log("✅ Order stored in database!");
-        res.json({ orderId: order.id, key_id: "rzp_test_cNdwDn00jRSuoN" });
+        res.json({ orderId: order.id, key_id: process.env.RAZORPAY_KEY_ID });
 
     } catch (error) {
         console.error("❌ Error creating order:", error);
@@ -54,7 +55,7 @@ router.post("/verify", async (req, res) => {
         return res.status(400).json({ message: "User ID not found. Please log in again." });
     }
 
-    const secret = "jip7vCslNxD2RZjCMTwSssSA";
+    const secret = process.env.RAZORPAY_KEY_SECRET;
     const generated_signature = crypto.createHmac("sha256", secret)
         .update(`${razorpay_order_id}|${razorpay_payment_id}`)
         .digest("hex");

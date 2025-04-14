@@ -1,1 +1,1 @@
-# expensetracker2
+# expense_tracker

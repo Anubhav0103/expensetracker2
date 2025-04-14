@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let signupForm = document.getElementById('signupForm');
     let loginForm = document.getElementById('loginForm');
 
-    // ✅ Signup Form Submission
+    // Signup Form Submission
     signupForm.addEventListener('submit', async function (event) {
         event.preventDefault();
 
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const password = document.getElementById('password').value;
 
         try {
-            const response = await fetch('http://localhost:5000/user/signup', {
+            const response = await fetch('/user/signup', { // Relative URL
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password })
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ✅ Login Form Submission
+    // Login Form Submission
     loginForm.addEventListener('submit', async function (event) {
         event.preventDefault();
 
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const password = document.getElementById('loginPassword').value;
 
         try {
-            const response = await fetch('http://localhost:5000/user/login', {
+            const response = await fetch('/user/login', { // Relative URL
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -54,8 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 alert("❌ Incorrect password. Please try again.");
             } else if (response.status === 200) {
                 alert("Login successful, redirecting...");
-                window.location.href = "/expense.html";  // ✅ Redirect to expense page
-
+                window.location.href = "/expense.html";
             } else {
                 alert("❌ Something went wrong. Please try again.");
             }
@@ -65,10 +64,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ✅ Add event listener to forgot password link
+    // Add event listener to forgot password link
     document.getElementById('forgotPasswordLink').addEventListener('click', async function (event) {
         event.preventDefault();
-        const email = document.getElementById('loginEmail').value; // Get the email from the login form
+        const email = document.getElementById('loginEmail').value;
         console.log(email);
         if (!email) {
             alert('Please enter your email address in the login form.');
@@ -76,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/user/forgotpassword', {
+            const response = await fetch('/user/forgotpassword', { // Relative URL
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -89,9 +88,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             if (response.ok) {
-                alert(data.message); // Show success message
+                alert(data.message);
             } else {
-                alert(data.message); // Show error message
+                alert(data.message);
             }
         } catch (error) {
             console.error('❌ Error in forgot password:', error);

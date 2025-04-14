@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
 const pool = require('../config/db'); // ✅ Import the database connection pool
-const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();  // ✅ Load environment variables
 const mailjet = require('node-mailjet')
     .apiConnect(
-        'c4aaccf9e6ec628ff119efd34f763f35',
-        'bf6e7acd1f64ddefea4be807c9c4b7c6'
+        process.env.MAILJET_PUBLIC_KEY,
+        process.env.MAILJET_PRIVATE_KEY
     );;
 
 // ✅ Add this route to get the user's session
@@ -35,14 +36,14 @@ router.get('/details', (req, res) => {
                 console.log(`❌ User with ID ${userId} not found in database.`);  // Added log
                 return res.status(404).json({ message: "User not found" });
             }
-            // Send the user's details (including isPremium) in the response
-            console.log(`✅ User details fetched successfully for user ID ${userId}.`);  // Added log
-            res.json(rows[0]); // { isPremium: 0 or 1 }
-        })
-        .catch(err => {
-            console.error("❌ Error fetching user details:", err);  // Improved error log
-            res.status(500).json({ message: "Failed to fetch user details", error: err.message }); // Include error message
-        });
+        // Send the user's details (including isPremium) in the response
+        console.log(`✅ User details fetched successfully for user ID ${userId}.`);  // Added log
+        res.json(rows[0]); // { isPremium: 0 or 1 }
+    })
+    .catch(err => {
+        console.error("❌ Error fetching user details:", err);  // Improved error log
+        res.status(500).json({ message: "Failed to fetch user details", error: error.message }); // Include error message
+    });
 });
 
 // ✅ Add this route for handling forgot password requests

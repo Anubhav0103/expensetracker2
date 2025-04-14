@@ -1,160 +1,252 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const expenseForm = document.getElementById("expenseForm");
     const expenseList = document.getElementById("expense-list");
+    const dailyExpenseList = document.getElementById("daily-expense-list");
+    const weeklyExpenseList = document.getElementById("weekly-expense-list");
+    const monthlyExpenseList = document.getElementById("monthly-expense-list");
     const buyMembershipBtn = document.getElementById("buyMembershipBtn");
     const premiumText = document.getElementById("premiumText");
     const leaderboardBtn = document.getElementById("leaderboardBtn");
     const paginationContainer = document.getElementById('pagination');
+    const dailyPaginationContainer = document.getElementById('daily-pagination');
+    const weeklyPaginationContainer = document.getElementById('weekly-pagination');
+    const monthlyPaginationContainer = document.getElementById('monthly-pagination');
 
-    let currentPage = 1; // Track current page
-    let limit = getExpensesPerPage(); // Expenses per page
+    let currentPage = 1;
+    let currentDailyPage = 1;
+    let currentWeeklyPage = 1;
+    let currentMonthlyPage = 1;
+    let limit = getExpensesPerPage();
 
-    // ✅ Debugging: Check if elements are being selected
-    console.log("Expense Form:", expenseForm);
-    console.log("Expense List:", expenseList);
-    console.log("Buy Membership Button:", buyMembershipBtn);
-    console.log("Premium Text:", premiumText);
-    console.log("Leaderboard Button:", leaderboardBtn);
-
-    // Function to determine the number of expenses per page based on screen width
     function getExpensesPerPage() {
-        const screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        let limitValue;
-
-        if (screenWidth <= 768) {
-            limitValue = 5;
-        } else if (screenWidth <= 1200) {
-            limitValue = 10;
-        } else {
-            limitValue = 16;
-        }
-
-        console.log("Screen width:", screenWidth, "Expenses per page:", limitValue);
-        return limitValue;
+        const screenWidth = window.innerWidth;
+        return screenWidth <= 768 ? 5 : screenWidth <= 1200 ? 10 : 16;
     }
 
-   window.addEventListener('resize', () => {
-        console.log('Window was resized');
-        limit = getExpensesPerPage(); // Update limit
-        currentPage = 1; // Reset to first page
-        fetchExpenses(currentPage); // Reload expenses with new settings
+    window.addEventListener('resize', () => {
+        limit = getExpensesPerPage();
+        currentPage = 1;
+        currentDailyPage = 1;
+        currentWeeklyPage = 1;
+        currentMonthlyPage = 1;
+        fetchAllExpenses();
     });
-    // ✅ Function to fetch and display expenses with pagination
-     async function fetchExpenses(page) {
+
+    async function fetchExpenses(page) {
         try {
             limit = getExpensesPerPage();
-            console.log('Fetching expenses for page:', page, 'with limit:', limit);
-
+            console.log(`Fetching total expenses: page=${page}, limit=${limit}`);
             const response = await fetch(`/expense/getAll?page=${page}&limit=${limit}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
             const data = await response.json();
-            const expenses = data.expenses;
-            console.log('Received expenses:', expenses);
-
-            expenseList.innerHTML = ""; // Clear existing list
-            if (expenses.length === 0) {
-                expenseList.innerHTML = "<li>No expenses found.</li>";
-            } else {
-                expenses.forEach(exp => {
-                    addExpenseToList(exp);
-                });
-            }
-
-            displayPagination(data.page, data.totalPages);
+            console.log(`Total expenses response: totalPages=${data.totalPages}, expenses=${data.expenses.length}`);
+            expenseList.innerHTML = "";
+            data.expenses.forEach(exp => addExpenseToList(exp, 'expense-list'));
+            if (!data.expenses.length) expenseList.innerHTML = "<tr><td colspan='6'>No expenses found.</td></tr>";
+            displayPagination(page, data.totalPages, 'fetchExpenses', paginationContainer);
+            currentPage = page;
         } catch (error) {
-            console.error("❌❌❌ Error fetching expenses:", error);
-            expenseList.innerHTML = "<li>Error loading expenses.</li>"; // Display error to user
+            console.error("Error fetching expenses:", error);
+            expenseList.innerHTML = "<tr><td colspan='6'>Error loading expenses.</td></tr>";
         }
     }
 
-    // ✅ Initial expenses fetch
-    fetchExpenses(currentPage);
+    async function fetchDailyExpenses(page) {
+        try {
+            limit = getExpensesPerPage();
+            console.log(`Fetching daily expenses: page=${page}, limit=${limit}`);
+            const response = await fetch(`/expense/daily?page=${page}&limit=${limit}`);
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            const data = await response.json();
+            console.log(`Daily expenses response: totalPages=${data.totalPages}, expenses=${data.expenses.length}`);
+            dailyExpenseList.innerHTML = "";
+            data.expenses.forEach(exp => addExpenseToList(exp, 'daily-expense-list'));
+            if (!data.expenses.length) dailyExpenseList.innerHTML = "<tr><td colspan='6'>No expenses found.</td></tr>";
+            displayPagination(page, data.totalPages, 'fetchDailyExpenses', dailyPaginationContainer);
+            currentDailyPage = page;
+        } catch (error) {
+            console.error("Error fetching daily expenses:", error);
+            dailyExpenseList.innerHTML = "<tr><td colspan='6'>Error loading expenses.</td></tr>";
+        }
+    }
 
-    // ✅ Function to display pagination controls
-     // ✅ Function to display pagination controls with limited page numbers
-     function displayPagination(currentPage, totalPages) {
-        paginationContainer.innerHTML = ''; // Clear existing buttons
-        if (totalPages <= 1) return; // No pagination needed if only 1 page
-    
-        // Add "Previous" button if not on the first page
-        if (currentPage > 1) {
-            const prevButton = document.createElement('button');
-            prevButton.textContent = 'Previous';
-            prevButton.addEventListener('click', () => fetchExpenses(currentPage - 1));
-            paginationContainer.appendChild(prevButton);
+    async function fetchWeeklyExpenses(page) {
+        try {
+            limit = getExpensesPerPage();
+            console.log(`Fetching weekly expenses: page=${page}, limit=${limit}`);
+            const response = await fetch(`/expense/weekly?page=${page}&limit=${limit}`);
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            const data = await response.json();
+            console.log(`Weekly expenses response: totalPages=${data.totalPages}, expenses=${data.expenses.length}`);
+            weeklyExpenseList.innerHTML = "";
+            data.expenses.forEach(exp => addExpenseToList(exp, 'weekly-expense-list'));
+            if (!data.expenses.length) weeklyExpenseList.innerHTML = "<tr><td colspan='6'>No expenses found.</td></tr>";
+            displayPagination(page, data.totalPages, 'fetchWeeklyExpenses', weeklyPaginationContainer);
+            currentWeeklyPage = page;
+        } catch (error) {
+            console.error("Error fetching weekly expenses:", error);
+            weeklyExpenseList.innerHTML = "<tr><td colspan='6'>Error loading expenses.</td></tr>";
         }
-    
-        // Always show first page
-        const firstPage = document.createElement('button');
-        firstPage.textContent = '1';
-        firstPage.addEventListener('click', () => fetchExpenses(1));
-        if (currentPage === 1) firstPage.disabled = true;
-        paginationContainer.appendChild(firstPage);
-    
-        // Add "..." if there's a gap after page 1
-        if (currentPage > 3) {
-            const dots = document.createElement('span');
-            dots.textContent = '...';
-            paginationContainer.appendChild(dots);
+    }
+
+    async function fetchMonthlyExpenses(page) {
+        try {
+            limit = getExpensesPerPage();
+            console.log(`Fetching monthly expenses: page=${page}, limit=${limit}`);
+            const response = await fetch(`/expense/monthly?page=${page}&limit=${limit}`);
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            const data = await response.json();
+            console.log(`Monthly expenses response: totalPages=${data.totalPages}, expenses=${data.expenses.length}`);
+            monthlyExpenseList.innerHTML = "";
+            data.expenses.forEach(exp => addExpenseToList(exp, 'monthly-expense-list'));
+            if (!data.expenses.length) monthlyExpenseList.innerHTML = "<tr><td colspan='6'>No expenses found.</td></tr>";
+            displayPagination(page, data.totalPages, 'fetchMonthlyExpenses', monthlyPaginationContainer);
+            currentMonthlyPage = page;
+        } catch (error) {
+            console.error("Error fetching monthly expenses:", error);
+            monthlyExpenseList.innerHTML = "<tr><td colspan='6'>Error loading expenses.</td></tr>";
         }
-    
-        // Show previous page (if applicable)
-        if (currentPage - 1 > 1) {
+    }
+
+    async function fetchAllExpenses() {
+        await Promise.all([
+            fetchExpenses(currentPage),
+            fetchDailyExpenses(currentDailyPage),
+            fetchWeeklyExpenses(currentWeeklyPage),
+            fetchMonthlyExpenses(currentMonthlyPage)
+        ]);
+    }
+
+    function displayPagination(page, totalPages, fetchFunction, paginationContainer) {
+        console.log(`Rendering pagination: fetchFunction=${fetchFunction}, page=${page}, totalPages=${totalPages}`);
+        paginationContainer.innerHTML = '';
+        if (totalPages <= 1) {
+            console.log(`No pagination needed for ${fetchFunction}: totalPages=${totalPages}`);
+            return;
+        }
+
+        if (page > 1) {
+            const prev = document.createElement('button');
+            prev.textContent = 'Previous';
+            prev.addEventListener('click', () => {
+                console.log(`Previous clicked: ${fetchFunction}, page=${page - 1}`);
+                updatePage(fetchFunction, page - 1);
+            });
+            paginationContainer.appendChild(prev);
+        }
+
+        const first = document.createElement('button');
+        first.textContent = '1';
+        first.addEventListener('click', () => {
+            console.log(`Page 1 clicked: ${fetchFunction}`);
+            updatePage(fetchFunction, 1);
+        });
+        if (page === 1) first.disabled = true;
+        paginationContainer.appendChild(first);
+
+        if (page > 3) paginationContainer.appendChild(document.createTextNode(" ... "));
+
+        if (page - 1 > 1) {
             const prevPage = document.createElement('button');
-            prevPage.textContent = currentPage - 1;
-            prevPage.addEventListener('click', () => fetchExpenses(currentPage - 1));
+            prevPage.textContent = page - 1;
+            prevPage.addEventListener('click', () => {
+                console.log(`Page ${page - 1} clicked: ${fetchFunction}`);
+                updatePage(fetchFunction, page - 1);
+            });
             paginationContainer.appendChild(prevPage);
         }
-    
-        // Show current page (if not first or last)
-        if (currentPage !== 1 && currentPage !== totalPages) {
-            const currentPageBtn = document.createElement('button');
-            currentPageBtn.textContent = currentPage;
-            currentPageBtn.disabled = true;
-            paginationContainer.appendChild(currentPageBtn);
+
+        if (page !== 1 && page !== totalPages) {
+            const current = document.createElement('button');
+            current.textContent = page;
+            current.disabled = true;
+            paginationContainer.appendChild(current);
         }
-    
-        // Show next page (if applicable)
-        if (currentPage + 1 < totalPages) {
+
+        if (page + 1 < totalPages) {
             const nextPage = document.createElement('button');
-            nextPage.textContent = currentPage + 1;
-            nextPage.addEventListener('click', () => fetchExpenses(currentPage + 1));
+            nextPage.textContent = page + 1;
+            nextPage.addEventListener('click', () => {
+                console.log(`Page ${page + 1} clicked: ${fetchFunction}`);
+                updatePage(fetchFunction, page + 1);
+            });
             paginationContainer.appendChild(nextPage);
         }
-    
-        // Add "..." if there's a gap before the last page
-        if (currentPage < totalPages - 2) {
-            const dots = document.createElement('span');
-            dots.textContent = '...';
-            paginationContainer.appendChild(dots);
-        }
-    
-        // Always show last page if more than 1 page
+
+        if (page < totalPages - 2) paginationContainer.appendChild(document.createTextNode(" ... "));
+
         if (totalPages > 1) {
-            const lastPage = document.createElement('button');
-            lastPage.textContent = totalPages;
-            lastPage.addEventListener('click', () => fetchExpenses(totalPages));
-            if (currentPage === totalPages) lastPage.disabled = true;
-            paginationContainer.appendChild(lastPage);
+            const last = document.createElement('button');
+            last.textContent = totalPages;
+            last.addEventListener('click', () => {
+                console.log(`Last page clicked: ${fetchFunction}, page=${totalPages}`);
+                updatePage(fetchFunction, totalPages);
+            });
+            if (page === totalPages) last.disabled = true;
+            paginationContainer.appendChild(last);
         }
-    
-        // Add "Next" button if not on the last page
-        if (currentPage < totalPages) {
-            const nextButton = document.createElement('button');
-            nextButton.textContent = 'Next';
-            nextButton.addEventListener('click', () => fetchExpenses(currentPage + 1));
-            paginationContainer.appendChild(nextButton);
+
+        if (page < totalPages) {
+            const next = document.createElement('button');
+            next.textContent = 'Next';
+            next.addEventListener('click', () => {
+                console.log(`Next clicked: ${fetchFunction}, page=${page + 1}`);
+                updatePage(fetchFunction, page + 1);
+            });
+            paginationContainer.appendChild(next);
         }
     }
-    
 
-    // ✅ Handle form submission properly
+    function updatePage(fetchFunction, newPage) {
+        console.log(`Updating page: fetchFunction=${fetchFunction}, newPage=${newPage}`);
+        switch (fetchFunction) {
+            case 'fetchExpenses':
+                currentPage = newPage;
+                fetchExpenses(newPage);
+                break;
+            case 'fetchDailyExpenses':
+                currentDailyPage = newPage;
+                fetchDailyExpenses(newPage);
+                break;
+            case 'fetchWeeklyExpenses':
+                currentWeeklyPage = newPage;
+                fetchWeeklyExpenses(newPage);
+                break;
+            case 'fetchMonthlyExpenses':
+                currentMonthlyPage = newPage;
+                fetchMonthlyExpenses(newPage);
+                break;
+            default:
+                console.error(`Unknown fetchFunction: ${fetchFunction}`);
+        }
+    }
+
+    async function handleDeleteClick(event) {
+        if (event.target.classList.contains("delete-btn")) {
+            const expenseId = event.target.dataset.id;
+            try {
+                const response = await fetch(`/expense/delete/${expenseId}`, { method: "DELETE" });
+                if (response.ok) {
+                    alert("Expense deleted successfully!");
+                    fetchAllExpenses();
+                } else {
+                    const data = await response.json();
+                    alert("Error deleting expense: " + data.message);
+                }
+            } catch (error) {
+                console.error("Error deleting expense:", error);
+                alert("Error deleting expense: " + error.message);
+            }
+        }
+    }
+
+    expenseList.addEventListener("click", handleDeleteClick);
+    dailyExpenseList.addEventListener("click", handleDeleteClick);
+    weeklyExpenseList.addEventListener("click", handleDeleteClick);
+    monthlyExpenseList.addEventListener("click", handleDeleteClick);
+
     expenseForm.addEventListener("submit", async (event) => {
-        event.preventDefault(); // ✅ Prevent default form submission (fixes page refresh)
-
+        event.preventDefault();
         const amount = document.getElementById("amount").value;
         const description = document.getElementById("description").value;
         const category = document.getElementById("category").value;
@@ -166,225 +258,237 @@ document.addEventListener("DOMContentLoaded", async () => {
                 body: JSON.stringify({ amount, description, category })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
             if (response.status === 201) {
-                alert("✅ Expense added successfully!"); // ✅ Provide user feedback
-                fetchExpenses(currentPage); // Refresh expenses to update pagination
-                // Optionally, you could clear the form fields instead of reloading:
-                // document.getElementById("amount").value = "";
-                // document.getElementById("description").value = "";
-                // document.getElementById("category").value = "food"; // Reset to default
+                alert("Expense added successfully!");
+                fetchAllExpenses();
+                document.getElementById("amount").value = "";
+                document.getElementById("description").value = "";
+                document.getElementById("category").value = "food";
             } else {
-                alert("❌ Error adding expense: " + data.message);
+                const data = await response.json();
+                alert("Error adding expense: " + data.message);
             }
         } catch (error) {
-            console.error("❌ Error adding expense:", error);
-            alert("❌ Error adding expense: " + error.message);
+            console.error("Error adding expense:", error);
+            alert("Error adding expense: " + error.message);
         }
     });
 
-    // Function to add expense to list
-    function addExpenseToList(exp) {
-        const li = document.createElement("li");
-        li.innerHTML = `${exp.amount} - ${exp.description} (${exp.category}) 
-                      <button class="delete-expense" data-id="${exp.id}">Delete</button>`;
-        expenseList.appendChild(li);
+    function addExpenseToList(exp, tableId) {
+        const tableBody = document.getElementById(tableId);
+        const date = exp.date ? exp.date : "N/A";
+        const time = exp.time ? exp.time : "N/A";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${date}</td>
+            <td>${time}</td>
+            <td>${exp.description}</td>
+            <td>${exp.category}</td>
+            <td>₹${exp.amount}</td>
+            <td><button class="delete-btn" data-id="${exp.id}" data-table="${tableId}">Delete</button></td>
+        `;
+        tableBody.appendChild(row);
     }
 
-    // ✅ Handle delete button clicks (event delegation)
-    expenseList.addEventListener("click", async (event) => {
-        if (event.target.classList.contains("delete-expense")) {
-            const expenseId = event.target.dataset.id;
-            try {
-                const response = await fetch(`/expense/delete/${expenseId}`, {
-                    method: "DELETE"
-                });
-                if (response.ok) {
-                    alert("✅ Expense deleted successfully!");
-                    event.target.parentElement.remove(); // Remove from the UI
-                    fetchExpenses(currentPage); // Refresh expenses to update pagination
-                } else {
-                    const data = await response.json();
-                    alert("❌ Error deleting expense: " + data.message);
-                }
-            } catch (error) {
-                console.error("❌ Error deleting expense:", error);
-                alert("❌ Error deleting expense: " + error.message);
-            }
-        }
-    });
-
-    // ✅ Debugging: Check if button exists
-    if (!buyMembershipBtn) {
-        console.warn("❌ Buy Membership button not found!");
-    }
-    if (!leaderboardBtn) {
-        console.warn("❌ Leaderboard button not found!");
-    }
-    console.log("✅ Buy Membership button found!");
-    console.log("✅ leaderboard button found!");
-
-    // ✅ Check if user is logged in
     try {
         const res = await fetch("/user/session");
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         const data = await res.json();
         const userId = data.userId;
 
         if (!userId) {
-            alert("Error: User ID not found. Please log in again.");
+            alert("User ID not found. Please log in again.");
             window.location.href = "signup.html";
             return;
         }
 
-        // ✅ Fetch user details to check if they are premium
         const userRes = await fetch("/user/details");
-        if (!userRes.ok) {
-            throw new Error(`HTTP error! status: ${userRes.status}`);
-        }
+        if (!userRes.ok) throw new Error(`HTTP error: ${userRes.status}`);
         const userData = await userRes.json();
 
-        console.log("✅ User Data:", userData); // Add this line
-        console.log("✅ isPremium:", userData.isPremium); // Add this line
-        console.log("✅ Type of isPremium", typeof userData.isPremium)
-
-        if (userData.isPremium === 1 || userData.isPremium === true) {
-            buyMembershipBtn.style.display = "none";
-            premiumText.style.display = "block";
-            if (leaderboardBtn) { // Check if leaderboardBtn exists before setting style
-                leaderboardBtn.style.display = "block";
-            } else {
-                console.warn("⚠️ Leaderboard button not found!");
-            }
-        } else {
-            buyMembershipBtn.style.display = "block";
-            premiumText.style.display = "none";
-            if (leaderboardBtn) { // Check if leaderboardBtn exists before setting style
-                leaderboardBtn.style.display = "none";
-            } else {
-                console.warn("⚠️ Leaderboard button not found!");
-            }
-        }
+        buyMembershipBtn.style.display = userData.isPremium ? "none" : "block";
+        premiumText.style.display = userData.isPremium ? "block" : "none";
+        leaderboardBtn.style.display = userData.isPremium ? "block" : "none";
     } catch (error) {
-        console.error("❌ Error fetching user data:", error);
-        alert("❌ Failed to check user status. Please try again.");
-        return;
+        console.error("Error fetching user data:", error);
+        alert("Failed to check user status. Please try again.");
     }
-    // ✅ Handle "Buy Membership" Button Click
-    buyMembershipBtn.addEventListener("click", async () => {
-        console.log("✅ Buy Membership button clicked!");
 
+    async function loadRazorpaySDK() {
+        if (typeof Razorpay !== 'undefined') {
+            console.log("Razorpay SDK already loaded");
+            return true;
+        }
+
+        return new Promise((resolve) => {
+            console.log("Dynamically loading Razorpay SDK...");
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onload = () => {
+                console.log("Razorpay SDK loaded successfully");
+                resolve(true);
+            };
+            script.onerror = () => {
+                console.error("Failed to load Razorpay SDK");
+                resolve(false);
+            };
+            document.body.appendChild(script);
+        });
+    }
+
+    async function waitForRazorpay(maxAttempts = 10, delayMs = 500) {
+        for (let i = 0; i < maxAttempts; i++) {
+            if (typeof Razorpay !== 'undefined') {
+                console.log("Razorpay SDK confirmed loaded");
+                return true;
+            }
+            console.log(`Waiting for Razorpay SDK... Attempt ${i + 1}/${maxAttempts}`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+        console.error("Razorpay SDK failed to load after max attempts");
+        return false;
+    }
+
+    buyMembershipBtn.addEventListener("click", async () => {
         try {
+            console.log("Initiating membership purchase...");
             const response = await fetch("/purchase/membership", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" }
             });
-
-            console.log("✅ Fetch request sent to /purchase/membership");
-
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`HTTP error: ${response.status}, ${errorData.message || 'Unknown error'}`);
+            }
             const data = await response.json();
+            console.log("Purchase response:", data);
 
-            if (!data.orderId) {
-                console.error("❌ Failed to create order. Response:", data);
-                alert("Error: Unable to create order. Check console.");
+            if (!data.orderId || !data.key_id) {
+                console.error("Missing orderId or key_id:", data);
+                alert("Error: Unable to initiate payment.");
                 return;
             }
 
-            console.log("✅ Order created successfully!", data);
-
             const options = {
-                key: "rzp_test_cNdwDn00jRSuoN",
+                key: data.key_id,
                 amount: 3000,
                 currency: "INR",
                 name: "Expense Tracker Premium",
                 order_id: data.orderId,
                 handler: async function (response) {
-                    console.log("✅ Payment successful:", response);
+                    console.log("Razorpay payment response:", response);
                     await verifyPayment(response, data.orderId);
                 },
-                prefill: {
-                    email: localStorage.getItem("userEmail"),
-                }
+                prefill: { email: localStorage.getItem("userEmail") || "" },
+                theme: { color: "#3399cc" }
             };
 
+            console.log("Preparing to open Razorpay checkout with options:", options);
+
+            let razorpayLoaded = await loadRazorpaySDK();
+            if (!razorpayLoaded) {
+                razorpayLoaded = await waitForRazorpay();
+            }
+
+            if (!razorpayLoaded) {
+                console.error("Payment service unavailable after all attempts");
+                alert("Payment service unavailable. Please try again later.");
+                return;
+            }
+
             const razorpay = new Razorpay(options);
+            razorpay.on('payment.failed', function (response) {
+                console.error("Razorpay payment failed:", response.error);
+                alert("Payment failed: " + response.error.description);
+            });
+            console.log("Opening Razorpay checkout");
             razorpay.open();
         } catch (error) {
-            console.error("❌ Error in buy membership:", error);
-            alert("Something went wrong while processing payment.");
+            console.error("Error in buy membership:", error);
+            alert("Something went wrong while initiating payment: " + error.message);
         }
     });
 
     async function verifyPayment(response, orderId) {
         try {
-            console.log("✅ Verifying payment...", response);
-
+            console.log("Verifying payment:", { orderId, paymentId: response.razorpay_payment_id });
             const res = await fetch("/purchase/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    razorpay_order_id: response.razorpay_payment_id,
+                    razorpay_order_id: orderId,
+                    razorpay_payment_id: response.razorpay_payment_id,
                     razorpay_signature: response.razorpay_signature
                 })
             });
-
             const result = await res.json();
-            console.log("✅ Payment verification response:", result);
-
+            console.log("Verification result:", result);
             if (result.success) {
-                alert("🎉 Transaction Successful! You are now a premium member.");
-                window.location.reload(); // ✅ Refresh to show updated premium status
+                alert("Transaction Successful! You are now a premium member.");
+                window.location.reload();
             } else {
-                alert("❌ Transaction Failed.");
+                console.error("Verification failed:", result.message);
+                alert("Transaction Failed: " + (result.message || "Unknown error"));
             }
         } catch (error) {
-            console.error("❌ Error verifying payment:", error);
-            alert("Something went wrong while verifying payment.");
+            console.error("Error verifying payment:", error);
+            alert("Something went wrong while verifying payment: " + error.message);
         }
     }
 
-    // ✅ Function to toggle leaderboard visibility and fetch data
-    window.toggleLeaderboard = async function() {
+    // Leaderboard toggle function
+    async function toggleLeaderboard() {
         const leaderboardContainer = document.getElementById("leaderboardContainer");
         const leaderboardTable = document.getElementById("leaderboard");
 
-        if (leaderboardContainer.style.display === "none") {
+        if (leaderboardContainer.style.display === "none" || leaderboardContainer.style.display === "") {
             leaderboardContainer.style.display = "block";
-
-            // Fetch leaderboard data
             try {
-                const response = await fetch("/expense/leaderboard");
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                const leaderboardData = await response.json();
-
-                // Populate the leaderboard table
-                leaderboardTable.innerHTML = ""; // Clear existing data
-                leaderboardData.forEach((user, index) => {
-                    const row = leaderboardTable.insertRow();
-                    const rankCell = row.insertCell();
-                    const nameCell = row.insertCell();
-                    const expenseCell = row.insertCell();
-
-                    rankCell.textContent = index + 1;
-                    nameCell.textContent = user.name;
-                    expenseCell.textContent = user.total_expense;
+                console.log("Fetching leaderboard data...");
+                const response = await fetch("/expense/leaderboard", {
+                    headers: { "Content-Type": "application/json" }
                 });
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                const leaderboardData = await response.json();
+                console.log("Leaderboard data:", leaderboardData);
+                leaderboardTable.innerHTML = "";
+                if (leaderboardData.length === 0) {
+                    leaderboardTable.innerHTML = "<tr><td colspan='3'>No data available.</td></tr>";
+                } else {
+                    leaderboardData.forEach((user, index) => {
+                        const row = leaderboardTable.insertRow();
+                        row.innerHTML = `<td>${index + 1}</td><td>${user.name}</td><td>₹${user.total_expense || 0}</td>`;
+                    });
+                }
             } catch (error) {
-                console.error("❌ Error fetching leaderboard:", error);
-                alert("❌ Failed to fetch leaderboard data.");
-                leaderboardContainer.style.display = "none"; // Hide on error
+                console.error("Error fetching leaderboard:", error);
+                alert("Failed to fetch leaderboard data: " + error.message);
+                leaderboardContainer.style.display = "none";
             }
         } else {
             leaderboardContainer.style.display = "none";
         }
     }
+
+    // Attach event listener to leaderboard button
+    leaderboardBtn.addEventListener('click', toggleLeaderboard);
+
+    function scheduleWeeklyRefresh() {
+        const now = new Date();
+        const nextMonday = new Date();
+        nextMonday.setDate(now.getDate() + ((1 + 7 - now.getDay()) % 7));
+        nextMonday.setHours(0, 0, 0, 0);
+        if (nextMonday <= now) nextMonday.setDate(nextMonday.getDate() + 7);
+        const timeUntilMonday = nextMonday - now;
+
+        setTimeout(() => {
+            fetchWeeklyExpenses(1);
+            currentWeeklyPage = 1;
+            setInterval(() => fetchWeeklyExpenses(1), 7 * 24 * 60 * 60 * 1000);
+        }, timeUntilMonday);
+    }
+
+    scheduleWeeklyRefresh();
+    fetchAllExpenses();
 });
